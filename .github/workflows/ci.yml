@@ -11,10 +11,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4 # Check out the repository first
-      
+
       # The other verification steps (checkout, build, format, etc.) will be run from PR Verify workflow already
       - name: Dotnet test
         run: dotnet test src/GitHubActionsDotNet.Api.Tests/GitHubActionsDotNet.Api.Tests.csproj --configuration Release
 
       - name: Dotnet publish
         run: dotnet publish src/GitHubActionsDotNet.Api/GitHubActionsDotNet.Api.csproj --configuration Release -o artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: domtrain-artifacts
+          path: artifacts/
