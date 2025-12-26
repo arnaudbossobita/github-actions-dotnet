@@ -14,5 +14,5 @@ jobs:
       - name: Dotnet test
         run: dotnet test --configuration Release
 
-      - name: Dotnet publish`
+      - name: Dotnet publish
         run: dotnet publish src/GitHubActionsDotNet.Api/GitHubActionsDotNet.Api.csproj --configuration Release -o artifacts
