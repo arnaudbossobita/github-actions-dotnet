@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4 # Check out the repository first
+
+      # The other verification steps (checkout, build, format, etc.) will be run from PR Verify workflow already
+      - name: Dotnet test
+        run: dotnet test src/GitHubActionsDotNet.Api.Tests/GitHubActionsDotNet.Api.Tests.csproj --configuration Release
+
+      - name: Dotnet publish
+        run: dotnet publish src/GitHubActionsDotNet.Api/GitHubActionsDotNet.Api.csproj --configuration Release -o artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: domtrain-artifacts
+          path: artifacts/
+
+  deploy_dev:
+    name: Deploy Dev
+    runs-on: ubuntu-latest
+    needs: build # By default jobs runs in parallel, this makes sure deploy runs after build
+    environment: dev
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: domtrain-artifacts #The name "domtrain-artifacts" is what makes teh link between the upload and download steps
+          path: artifacts/
+        
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      # Deploy to Azure Web apps
+      - name: 'Deploy to  Azure App Service'
+        uses: azure/webapps-deploy@v2
+        with: 
+          app-name: ${{ env.AZURE_WEBAPP_NAME }} # Replace with your app name, i.e. app-domtrain-github-scottsauber-dev
+          package: artifacts/
+
+  deploy_prod:
+    name: Deploy Prod
+    runs-on: ubuntu-latest
+    needs: deploy_dev # By default jobs runs in parallel, this makes sure deploy prod runs after deploy dev
+    environment: prod
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: domtrain-artifacts #The name "domtrain-artifacts" is what makes teh link between the upload and download steps
+          path: artifacts/
+        
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      # Deploy to Azure Web apps
+      - name: 'Deploy to  Azure App Service'
+        uses: azure/webapps-deploy@v2
+        with: 
+          app-name: ${{ env.AZURE_WEBAPP_NAME }} # Replace with your app name, i.e. app-domtrain-github-scottsauber-prod
+          package: artifacts/          
